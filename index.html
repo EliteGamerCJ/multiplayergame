@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplayer Square Game</title>
+  <style>
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const socket = new WebSocket('ws://localhost:3000');
+
+    let players = [];
+
+    // Handle WebSocket connection
+    socket.onopen = () => {
+        console.log('Connected to server');
+    };
+
+    // Handle incoming messages from the server
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'players') {
+            players = data.players;
+            renderPlayers();
+        } else if (data.type === 'initial') {
+            players = data.players;
+        }
+    };
+
+    // Handle player movement with arrow keys
+    document.addEventListener('keydown', (e) => {
+        const player = players[0]; // Assuming the player is the first in the list (simplified)
+
+        if (e.key === 'ArrowUp') {
+            player.y -= 5;  // Move up
+        } else if (e.key === 'ArrowDown') {
+            player.y += 5;  // Move down
+        } else if (e.key === 'ArrowLeft') {
+            player.x -= 5;  // Move left
+        } else if (e.key === 'ArrowRight') {
+            player.x += 5;  // Move right
+        }
+
+        // Send updated position to server
+        socket.send(JSON.stringify({
+            type: 'move',
+            x: player.x,
+            y: player.y
+        }));
+    });
+
+    // Draw players on the canvas
+    function renderPlayers() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        players.forEach((player) => {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x, player.y, 50, 50);
+        });
+    }
+
+    // Start the game loop
+    function gameLoop() {
+        renderPlayers();
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
